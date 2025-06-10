@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 import { Box, CircularProgress } from "@mui/material";
+import { Button, Grid } from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
 import mockData from "./mockData";
-
 
 const DonutMenu = () => {
   const svgRef = useRef(null);
@@ -12,6 +13,14 @@ const DonutMenu = () => {
   const [activeLayer, setActiveLayer] = useState(0);
   const [selectedItem, setSelectedItem] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [nationalCode, setNationalCode] = useState("");
+  const [searchClicked, setSearchClicked] = useState(false);
+  const resetSearch = () => {
+    setSearchClicked(false);
+    setNationalCode("");
+    setSelectedItem(null);
+    setActiveLayer(0);
+  };
 
   const width = 450;
   const height = 450;
@@ -74,11 +83,10 @@ const DonutMenu = () => {
     }
 
     drawLayers();
-  }, [data, activeLayer, selectedItem, isLoading]);
+  }, [data, activeLayer, selectedItem, isLoading, searchClicked]);
 
   const drawLayers = () => {
     const group = groupRef.current;
-
     group.selectAll(".arc-layer").remove();
 
     const layers = [
@@ -94,11 +102,7 @@ const DonutMenu = () => {
       },
     ];
 
-    if (
-      selectedItem &&
-      selectedItem.children &&
-      selectedItem.children.length > 0
-    ) {
+    if (selectedItem && selectedItem.children?.length > 0) {
       layers.push({
         items: selectedItem.children,
         innerRadius: 150,
@@ -107,7 +111,8 @@ const DonutMenu = () => {
     }
 
     layers.forEach((layer, layerIndex) => {
-      if (layerIndex > activeLayer) return;
+      // فقط لایه اول نمایش داده میشه تا زمانی که جستجو کلیک نشده
+      if (layerIndex > 1 || (layerIndex === 1 && !searchClicked)) return;
 
       const arc = d3
         .arc()
@@ -156,20 +161,42 @@ const DonutMenu = () => {
         const isCenter = layerIndex === 0;
 
         if (isCenter) {
+          const imageY =
+            searchClicked && nationalCode.trim() !== "" ? -70 : -90;
           g.append("image")
             .attr("href", "/4.png")
             .attr("x", -28)
-            .attr("y", -70)
+            .attr("y", imageY)
             .attr("width", 60)
             .attr("height", 60);
-          // .attr("clip-path", "circle(20px at 20px 20px)");
+          if (searchClicked && nationalCode.trim() !== "") {
+            g.append("text")
+              .text(nationalCode)
+              .attr("y", 10)
+              .attr("text-anchor", "middle")
+              .attr("fill", "black")
+              .style("font-size", "12px");
 
-          g.append("text")
-            .attr("y", 7)
-            .attr("text-anchor", "middle")
-            .attr("fill", "#000")
-            .attr("font-size", "14px")
-            .text("کد ملی");
+            g.append("foreignObject")
+              .attr("x", -8)
+              .attr("y", 14)
+              .attr("width", 18)
+              .attr("height", 18)
+              .attr("title", "بازگشت به جستجو")
+              .append("xhtml:div")
+              .style("width", "100%")
+              .style("height", "100%")
+              .style("display", "flex")
+              .style("align-items", "center")
+              .style("justify-content", "center")
+              .style("color", "white")
+              .style("font-size", "20px")
+              .style("background", "red")
+              .style("border-radius", "50%")
+              .style("cursor", "pointer")
+              .text("×")
+              .on("click", resetSearch);
+          }
         } else {
           g
             .append("foreignObject")
@@ -214,15 +241,7 @@ const DonutMenu = () => {
   };
 
   const handleClick = (layerIndex, item) => {
-    if (layerIndex === 0) {
-      if (activeLayer > 0) {
-        setActiveLayer(0);
-        setSelectedItem(null);
-      } else {
-        setActiveLayer(1);
-      }
-      return;
-    }
+    if (layerIndex === 0) return;
 
     if (layerIndex === 1) {
       if (selectedItem && selectedItem.value === item.value) {
@@ -267,7 +286,58 @@ const DonutMenu = () => {
           <CircularProgress color="primary" />
         </Box>
       ) : (
-        <svg ref={svgRef}></svg>
+        <>
+          <svg ref={svgRef}></svg>
+
+          {!searchClicked && (
+            <Box
+              sx={{
+                position: "absolute",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -10%)",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+              }}
+            >
+              <input
+                type="text"
+                placeholder="کد ملی"
+                value={nationalCode}
+                onChange={(e) => setNationalCode(e.target.value)}
+                style={{
+                  fontSize: "12px",
+                  padding: "6px 8px",
+                  marginBottom: "6px",
+                  borderRadius: "4px",
+                  border: "1px solid #ccc",
+                }}
+              />
+
+              <Grid container xs={6} justifyContent="center">
+                <Button
+                  disabled={nationalCode.trim() === ""}
+                  onClick={() => {
+                    setSearchClicked(true);
+                    setActiveLayer(1);
+                  }}
+                  type="submit"
+                  className="searchBtn"
+                >
+                  <SearchIcon
+                    style={{
+                      width: "18px",
+                      height: "18px",
+                      marginLeft: "5px",
+                    }}
+                  />
+                  جستجو
+                </Button>
+              </Grid>
+            </Box>
+          )}
+        </>
       )}
     </Box>
   );
