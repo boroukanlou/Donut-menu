@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
-import { Box, CircularProgress } from "@mui/material";
+import { Box, CircularProgress, TextField } from "@mui/material";
 import { Button, Grid } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import mockData from "./mockData";
+import { checkCodeMeli, isNumeric } from "./utils/validators";
 
 const DonutMenu = () => {
   const svgRef = useRef(null);
@@ -14,6 +15,7 @@ const DonutMenu = () => {
   const [selectedItem, setSelectedItem] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [nationalCode, setNationalCode] = useState("");
+  const [nationalCodeError, setNationalCodeError] = useState("");
   const [searchClicked, setSearchClicked] = useState(false);
   const resetSearch = () => {
     setSearchClicked(false);
@@ -111,7 +113,6 @@ const DonutMenu = () => {
     }
 
     layers.forEach((layer, layerIndex) => {
-      // فقط لایه اول نمایش داده میشه تا زمانی که جستجو کلیک نشده
       if (layerIndex > 1 || (layerIndex === 1 && !searchClicked)) return;
 
       const arc = d3
@@ -162,13 +163,14 @@ const DonutMenu = () => {
 
         if (isCenter) {
           const imageY =
-            searchClicked && nationalCode.trim() !== "" ? -70 : -90;
+            searchClicked && nationalCode.trim() !== "" ? -75 : -110;
+
           g.append("image")
             .attr("href", "/4.png")
-            .attr("x", -28)
+            .attr("x", -34)
             .attr("y", imageY)
-            .attr("width", 60)
-            .attr("height", 60);
+            .attr("width", 70)
+            .attr("height", 70);
           if (searchClicked && nationalCode.trim() !== "") {
             g.append("text")
               .text(nationalCode)
@@ -266,7 +268,7 @@ const DonutMenu = () => {
 
   return (
     <Box
-      sx={{
+      style={{
         width: 450,
         height: 450,
         overflow: "hidden",
@@ -276,7 +278,7 @@ const DonutMenu = () => {
     >
       {isLoading ? (
         <Box
-          sx={{
+          style={{
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
@@ -291,7 +293,7 @@ const DonutMenu = () => {
 
           {!searchClicked && (
             <Box
-              sx={{
+              style={{
                 position: "absolute",
                 top: "50%",
                 left: "50%",
@@ -299,31 +301,67 @@ const DonutMenu = () => {
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
+                gap: 10,
+                direction: "rtl",
               }}
             >
-              <input
-                type="text"
-                placeholder="کد ملی"
-                value={nationalCode}
-                onChange={(e) => setNationalCode(e.target.value)}
-                style={{
-                  fontSize: "12px",
-                  padding: "6px 8px",
-                  marginBottom: "6px",
-                  borderRadius: "4px",
-                  border: "1px solid #ccc",
+              <TextField
+                inputProps={{
+                  maxLength: 10,
                 }}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  const lastChar = value.slice(-1);
+
+                  if (value && !isNumeric(lastChar)) {
+                    setNationalCodeError("لطفاً فقط عدد وارد کنید");
+                    return;
+                  }
+
+                  setNationalCode(value);
+
+                  if (value.length === 10 && !checkCodeMeli(value)) {
+                    setNationalCodeError("کد ملی نامعتبر است");
+                  } else {
+                    setNationalCodeError("");
+                  }
+                }}
+                style={{ width: "100%", direction: "rtl" }}
+                label="کد ملی"
+                variant="filled"
+                error={nationalCodeError}
+                value={nationalCode === -1 ? "" : nationalCode}
               />
 
-              <Grid container xs={6} justifyContent="center">
+              {nationalCodeError && (
+                <span
+                  style={{
+                    color: "red",
+                    fontSize: "10px",
+                    marginBottom: "4px",
+                  }}
+                >
+                  {nationalCodeError}
+                </span>
+              )}
+
+              <Grid container justifyContent="center" alignItems="center">
                 <Button
-                  disabled={nationalCode.trim() === ""}
+                  variant="contained"
+                  disabled={
+                    nationalCode.trim() === "" || nationalCodeError !== ""
+                  }
                   onClick={() => {
                     setSearchClicked(true);
                     setActiveLayer(1);
                   }}
                   type="submit"
-                  className="searchBtn"
+                  style={{
+                    lineHeight: "24px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
                 >
                   <SearchIcon
                     style={{

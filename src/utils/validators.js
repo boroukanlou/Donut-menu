@@ -11,10 +11,6 @@ export function checkCodeMeli(code) {
   return (s < 2 && c === s) || (s >= 2 && c === 11 - s);
 }
 
-export function isPersian(input) {
-  const p = /^[\u0600-\u06FF\s]+$/;
-  if (!p.test(input)) {
-    return false;
-  }
-  return true;
+export function isNumeric(input) {
+  return !!input.match(/[0-9]/g);
 }
